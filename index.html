@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>&#128148;&#128148;&#128148;Hi~~ TYPO GRAPHY</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400;500;700;900&family=PT+Serif:wght@400;700&family=Raleway:wght@100;200;300;400;500;600;700;800;900&family=Titillium+Web:wght@200;300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/common.css" />
+    <link rel="stylesheet" href="css/swiper-bundle.css" />
+    <link rel="stylesheet" href="css/fancybox.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script src="js/greensock/gsap.min.js"></script>
+    <script src="js/particles.min.js"></script>
+    <script src="js/isotope.pkgd.min.js"></script>
+    <script src="js/imagesloaded.pkgd.min.js"></script>
+    <script src="js/fancybox.umd.js"></script>
+    <script src="js/lodash.js"></script>
+  </head>
+  <body>
+    <header id="header">
+      <h1 id="logo"><strong>TYPO GRAPHY</strong></h1>
+    </header>
+    <main id="main">
+      <nav id="filter">
+        <h2 class="blind">filtering menu</h2>
+        <ul>
+          <li class="on" data-filter="item">ALL</li>
+          <li data-filter="paint">PAINT</li>
+          <li data-filter="photo">PHOTO</li>
+          <li data-filter="sketch">SKETCH</li>
+        </ul>
+      </nav>
+      <div id="works">
+        <ul class="itemList"></ul>
+      </div>
+    </main>
+    <div class="cursor">
+      <span class="txt"></span>
+    </div>
+    <div class="txtBox">
+      <div>
+        <label>clientY<input type="text" name="clientY" /></label>
+      </div>
+      <div>
+        <label>pageY<input type="text" name="pageY" /></label>
+      </div>
+      <div>
+        <label>offsetY<input type="text" name="offsetY" /></label>
+      </div>
+      <div>
+        <label>screenY<input type="text" name="screenY" /></label>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    const itemList = $("#works .itemList");
+    const filterList = $("#filter li");
+    let grid = null;
+
+    $.ajax({ url: "data/typo.json" }).done(function (response) {
+      console.log(response.imageFolder);
+      console.log(response.typoList);
+      const typoList = response.typoList;
+      const imageFolder = response.imageFolder;
+      //forEach(function(item,idx){})
+      let tempHtml = "";
+      $.each(typoList, function (idx, item) {
+        tempHtml += `<li class="item ${item.category}">
+            <a href="${imageFolder + item.img}" data-fancybox="${item.category}" 
+                                                data-caption="${item.title}  
+                                                <a href='${item.link}' target='_blank'><span class='material-icons'>open_in_new</span></a>">
+              <div class="img">
+                <img src="${imageFolder + item.img}" alt="" />
+              </div>
+              <div class="info">
+                <h2>${item.title}</h2>
+                <p class="desc">${item.desc}</p>
+                <p class="point">
+                  <span class="num">${item.point}</span>
+                </p>
+              </div>
+            </a>
+          </li>`;
+      });
+      console.log(tempHtml);
+      //itemList.innerHtml = tempHtml;
+      itemList.html(tempHtml);
+      itemList.imagesLoaded().always(function () {
+        grid = itemList.isotope({
+          itemSelector: ".item",
+          percentPosition: true,
+          layoutMode: "masonry",
+          getSortData: {
+            point: ".point .num parseFloat",
+          },
+        });
+        grid.isotope({ filter: ".item", sortBy: "point", sortAscending: false });
+      });
+    });
+
+    filterList.on("click", function () {
+      $(this).addClass("on").siblings().removeClass("on");
+      console.log($(this).data("filter"));
+      const filter = $(this).data("filter");
+      grid.isotope({ filter: `.${filter}`, sortBy: "point", sortAscending: false });
+    });
+    // 이벤트 위임  (delegation)
+    $("body").on("click", ".fancybox__caption a", function () {
+      // console.log($(this).attr("href"));
+      // return false;
+    });
+    const cursor = $(".cursor");
+    $(window).on(
+      "mousemove",
+      _.throttle(function (e) {
+        $("input[name='clientY']").val(e.clientY);
+        $("input[name='screenY']").val(e.screenY);
+        $("input[name='pageY']").val(e.pageY); //스크롤의 clientY + 페이지 스크롤값 도 포함
+        $("input[name='offsetY']").val(e.offsetY);
+        gsap.to(cursor, { left: e.clientX, top: e.clientY });
+      }, 1000 / 24)
+    );
+
+    $(".itemList").on("mouseenter", "li", function () {
+      // console.log("sdfe");
+      cursor.find(".txt").text("CLICK");
+      gsap.killTweensOf(cursor);
+      gsap.to(cursor, { width: 100, height: 100, backgroundColor: "#f00", ease: "elastic", duration: 1 });
+    });
+
+    $(".itemList").on("mouseleave", "li", function () {
+      // console.log("sdfe");
+      cursor.find(".txt").text("");
+      gsap.killTweensOf(cursor);
+      gsap.to(cursor, { width: 20, height: 20, backgroundColor: "#fff", ease: "power4.1", duration: 0.25 });
+    });
+
+    // mousemove 이벤트 부하 안되게 하기
+    // <!-- throttling 마지막 함수가 호출되고 일정시간이 지났을 때 다시 호출되게 함
+    // debounce 함수가 연이어 호출될 때 마짐가 함수만 호출함 -->
+  </script>
+</html>
